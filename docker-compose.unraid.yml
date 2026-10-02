@@ -1,0 +1,95 @@
+# Prism on Unraid — works with the Compose Manager plugin (or `docker compose up -d`).
+#
+# - No repo checkout needed: uses a pre-built image (set PRISM_IMAGE to YOUR build
+#   of this modified code; upstream lacks the auto-schema/secrets entrypoint) and bootstraps its own
+#   database schema and secrets on first boot.
+# - All state lives under /mnt/user/appdata/prism (survives updates, easy to back up).
+# - Web UI: http://<unraid-ip>:3000   (change PRISM_PORT in the env file to move it)
+#
+# Setup: copy .env.unraid.example to .env next to this file, set DB_PASSWORD
+# (and APP_URL), then bring the stack up. See docs/getting-started/unraid.md.
+
+name: prism
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *restart
+    image: ${PRISM_IMAGE:-ghcr.io/sandydargoport/prism}:${PRISM_VERSION:-latest}
+    container_name: prism-app
+    # Unraid's default user is nobody:users (99:100), so appdata stays editable
+    # from SMB/the file manager.
+    user: "${PUID:-99}:${PGID:-100}"
+    ports:
+      - "${PRISM_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      TZ: ${TZ:-UTC}
+      DATABASE_URL: postgresql://prism:${DB_PASSWORD:?Set DB_PASSWORD in .env}@db:5432/prism
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_URL: redis://redis:6379
+      NODE_OPTIONS: --dns-result-order=ipv4first
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    # Optional: integrations, weather keys, PRISM_ALLOWED_INTERNAL_HOSTS, etc.
+    # (the same variables as .env.example). Secrets are auto-generated if unset.
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/config:/app/config
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/uploads:/app/uploads
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/backups:/app/backups
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/data:/app/data
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/photos-cache:/app/cache/photos
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health/ready',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      net.unraid.docker.managed: composeman
+      net.unraid.docker.webui: "http://[IP]:[PORT:${PRISM_PORT:-3000}]"
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/sandydargoport/prism/master/logos/prism_square.png"
+
+  db:
+    <<: *restart
+    image: postgres:15-alpine
+    container_name: prism-db
+    environment:
+      POSTGRES_DB: prism
+      POSTGRES_USER: prism
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prism -d prism"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      net.unraid.docker.managed: composeman
+
+  redis:
+    <<: *restart
+    image: redis:7-alpine
+    container_name: prism-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ${PRISM_APPDATA:-/mnt/user/appdata/prism}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      net.unraid.docker.managed: composeman

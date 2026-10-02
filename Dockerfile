@@ -71,11 +71,16 @@ COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 # Self-contained CJS bundles with all deps inlined via esbuild — no need
 # to ship src/ or the dev node_modules.
 COPY --from=builder /app/dist/db ./dist/db
+# Base schema for fresh databases. The stock compose gets this via Postgres'
+# docker-entrypoint-initdb.d bind mount; copying it into the image lets
+# entrypoint.sh bootstrap an empty DB itself (Unraid, Portainer, anywhere the
+# repo isn't checked out next to the compose file).
+COPY --from=builder /app/src/lib/db/init ./db-init
 COPY docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 RUN mkdir -p /app/config /app/uploads /app/cache/photos
-RUN chown -R nextjs:nodejs /app/config /app/uploads /app/cache /app/drizzle /app/scripts /app/entrypoint.sh
+RUN chown -R nextjs:nodejs /app/config /app/uploads /app/cache /app/drizzle /app/scripts /app/db-init /app/entrypoint.sh
 
 USER nextjs
 
