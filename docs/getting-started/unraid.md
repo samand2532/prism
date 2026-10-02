@@ -17,7 +17,7 @@ in the env file (make the package public, or `docker login ghcr.io` on Unraid).
 3. **Edit Stack → Compose File**: paste the contents of `docker-compose.unraid.yml`.
 4. **Edit Stack → ENV File**: paste `.env.unraid.example` and set `DB_PASSWORD`,
    `APP_URL` (your Unraid IP and port) and `TZ`.
-5. **Compose Up**, then open `http://<unraid-ip>:3000`.
+5. **Compose Up**, then open `http://<unraid-ip>:23000`.
 
 No repo checkout, `openssl` commands, or certificates needed. The database
 schema and app secrets are created on first boot.
@@ -36,7 +36,7 @@ Migrations run automatically on start.
 
 ## Notes
 
-- HTTPS: put Nginx Proxy Manager / SWAG / Traefik in front and point it at port 3000,
+- HTTPS: put Nginx Proxy Manager / SWAG / Traefik in front and point it at port 23000,
   then set `APP_URL` to the https address.
 - Reaching other LAN apps (Immich, CalDAV...) needs `PRISM_ALLOWED_INTERNAL_HOSTS`.
 - Files are owned by `99:100` (nobody:users) by default; change with `PUID`/`PGID`.

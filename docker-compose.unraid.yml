@@ -4,7 +4,7 @@
 #   of this modified code; upstream lacks the auto-schema/secrets entrypoint) and bootstraps its own
 #   database schema and secrets on first boot.
 # - All state lives under /mnt/user/appdata/prism (survives updates, easy to back up).
-# - Web UI: http://<unraid-ip>:3000   (change PRISM_PORT in the env file to move it)
+# - Web UI: http://<unraid-ip>:23000   (change PRISM_PORT in the env file to move it)
 #
 # Setup: copy .env.unraid.example to .env next to this file, set DB_PASSWORD
 # (and APP_URL), then bring the stack up. See docs/getting-started/unraid.md.
@@ -23,7 +23,7 @@ services:
     # from SMB/the file manager.
     user: "${PUID:-99}:${PGID:-100}"
     ports:
-      - "${PRISM_PORT:-3000}:3000"
+      - "${PRISM_PORT:-23000}:3000"
     environment:
       NODE_ENV: production
       TZ: ${TZ:-UTC}
@@ -31,7 +31,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_URL: redis://redis:6379
       NODE_OPTIONS: --dns-result-order=ipv4first
-      APP_URL: ${APP_URL:-http://localhost:3000}
+      APP_URL: ${APP_URL:-http://localhost:23000}
     # Optional: integrations, weather keys, PRISM_ALLOWED_INTERNAL_HOSTS, etc.
     # (the same variables as .env.example). Secrets are auto-generated if unset.
     env_file:
@@ -56,7 +56,7 @@ services:
       start_period: 60s
     labels:
       net.unraid.docker.managed: composeman
-      net.unraid.docker.webui: "http://[IP]:[PORT:${PRISM_PORT:-3000}]"
+      net.unraid.docker.webui: "http://[IP]:[PORT:${PRISM_PORT:-23000}]"
       net.unraid.docker.icon: "https://raw.githubusercontent.com/sandydargoport/prism/master/logos/prism_square.png"
 
   db:
