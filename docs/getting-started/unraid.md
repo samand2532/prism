@@ -5,10 +5,10 @@ bundles them with data under `/mnt/user/appdata/prism`.
 
 ## Image
 
-The compose file needs an image built from *this* repo (it includes the
-self-bootstrapping entrypoint). Publish one by running the **Build & Publish
-Docker Image** workflow on your fork, then set `PRISM_IMAGE=ghcr.io/<you>/prism`
-in the env file (make the package public, or `docker login ghcr.io` on Unraid).
+The stack builds the image on your Unraid server directly from the git repo in
+`PRISM_BUILD_CONTEXT` (default: your fork's `unraid-support` branch). The first
+**Compose Up** takes roughly 10-20 minutes and needs ~4 GB free RAM; later
+starts reuse the built image. No GitHub Actions or registry login needed.
 
 ## Prepare the folders (once)
 
@@ -37,7 +37,8 @@ schema and app secrets are created on first boot.
 
 ## Updating
 
-Compose Manager → **Update Stack** (or `docker compose pull && docker compose up -d`).
+Rebuild from the latest code, from the stack's folder in the Unraid terminal:
+`docker compose build --no-cache app && docker compose up -d`.
 Migrations run automatically on start.
 
 ## Backups

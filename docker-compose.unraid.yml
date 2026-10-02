@@ -1,8 +1,7 @@
 # Prism on Unraid — works with the Compose Manager plugin (or `docker compose up -d`).
 #
-# - No repo checkout needed: uses a pre-built image (set PRISM_IMAGE to YOUR build
-#   of this modified code; upstream lacks the auto-schema/secrets entrypoint) and bootstraps its own
-#   database schema and secrets on first boot.
+# - No repo checkout needed: Docker builds the image from your fork on first start,
+#   and the image bootstraps its own database schema and secrets on first boot.
 # - All state lives under /mnt/user/appdata/prism (survives updates, easy to back up).
 # - Web UI: http://<unraid-ip>:23000   (change PRISM_PORT in the env file to move it)
 #
@@ -17,7 +16,13 @@ x-restart: &restart
 services:
   app:
     <<: *restart
-    image: ${PRISM_IMAGE:-ghcr.io/sandydargoport/prism}:${PRISM_VERSION:-latest}
+    # Built on your Unraid server straight from the git repo (no registry or
+    # GitHub Actions needed). First build takes ~10-20 min and wants ~4 GB free RAM.
+    # To pull a pre-built image instead, delete this `build:` block and set `image:`.
+    build:
+      context: ${PRISM_BUILD_CONTEXT:-https://github.com/samand2532/prism.git#unraid-support}
+      dockerfile: Dockerfile
+    image: prism-unraid:local
     container_name: prism-app
     # Unraid's default user is nobody:users (99:100), so appdata stays editable
     # from SMB/the file manager.
