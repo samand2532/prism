@@ -10,6 +10,19 @@ self-bootstrapping entrypoint). Publish one by running the **Build & Publish
 Docker Image** workflow on your fork, then set `PRISM_IMAGE=ghcr.io/<you>/prism`
 in the env file (make the package public, or `docker login ghcr.io` on Unraid).
 
+## Prepare the folders (once)
+
+Docker creates missing bind-mount folders as root, but Prism runs as `99:100`
+(nobody:users), so create them first. Open the Unraid terminal (top-right `>_`):
+
+```sh
+mkdir -p /mnt/user/appdata/prism/{config,uploads,backups,data,photos-cache,postgres,redis}
+chown -R 99:100 /mnt/user/appdata/prism/{config,uploads,backups,data,photos-cache}
+```
+
+(Postgres and Redis manage their own folders.) If you changed `PRISM_APPDATA`
+or `PUID`/`PGID`, use those values instead.
+
 ## Install
 
 1. Install **Docker Compose Manager** from Community Apps.
